@@ -1,45 +1,58 @@
 name: Release
 
-permissions:
-  contents: read
+permissions: {}
 
 on:
-  push:
-    tags:
-      - v[0-9]+.[0-9]+.*
-      - install-action-manifest-schema-[0-9]+.[0-9]+.*
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Package to be released
+        required: true
+        type: choice
+        options:
+          - install-action
+          - install-action-manifest-schema
+      version:
+        description: Version to be increased
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
-defaults:
-  run:
-    shell: bash --noprofile --norc -CeEuxo pipefail {0}
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
-  create-release:
-    if: github.repository_owner == 'taiki-e' && !startsWith(github.ref_name, 'install-action-manifest-schema-')
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: release
+  release:
+    if: github.repository_owner == 'taiki-e' && inputs.target == 'install-action'
+    uses: taiki-e/github-actions/.github/workflows/action-release.yml@e6a1170cbd07eb898017958967912976fce18f2d # 2026.7.3
     permissions:
       contents: write # for taiki-e/create-gh-release-action
-    steps:
-      - uses: taiki-e/checkout-action@v1
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          changelog: CHANGELOG.md
-          title: $version
-          branch: 'main|v[0-9]+'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  create-release-manifest-schema:
-    if: github.repository_owner == 'taiki-e' && startsWith(github.ref_name, 'install-action-manifest-schema-')
-    # TODO: use new rust-release workflow
-    uses: taiki-e/github-actions/.github/workflows/create-release.yml@853cebf868aa2dce1470668df24176803e05adc8
+    secrets:
+      PUSH_TOKEN_APP_CLIENT_ID: ${{ secrets.PUSH_TOKEN_APP_CLIENT_ID }}
+      PUSH_TOKEN_APP_PRIVATE_KEY: ${{ secrets.PUSH_TOKEN_APP_PRIVATE_KEY }}
     with:
-      crates: tools/manifest-schema
-      changelog: tools/manifest-schema/CHANGELOG.md
-      title: $prefix $version
-      prefix: install-action-manifest-schema
+      version: ${{ inputs.version }}
+      post-commit-script: tools/ci/release-post-commit.sh
+
+  release-manifest-schema:
+    if: github.repository_owner == 'taiki-e' && inputs.target == 'install-action-manifest-schema'
+    uses: taiki-e/github-actions/.github/workflows/rust-release.yml@e6a1170cbd07eb898017958967912976fce18f2d # 2026.7.3
     permissions:
       contents: write # for taiki-e/create-gh-release-action
       id-token: write # for rust-lang/crates-io-auth-action
-    secrets: inherit
+      attestations: write # unused (used when options for uploading binaries are set)
+    secrets:
+      PUSH_TOKEN_APP_CLIENT_ID: ${{ secrets.PUSH_TOKEN_APP_CLIENT_ID }}
+      PUSH_TOKEN_APP_PRIVATE_KEY: ${{ secrets.PUSH_TOKEN_APP_PRIVATE_KEY }}
+    with:
+      version: ${{ inputs.version }}
+      tag-prefix: install-action-manifest-schema-
+      package: install-action-manifest-schema
+      changelog: tools/manifest-schema/CHANGELOG.md
+      title: $prefix $version
+      prefix: install-action-manifest-schema
+      commit-prefix: 'manifest-schema: '

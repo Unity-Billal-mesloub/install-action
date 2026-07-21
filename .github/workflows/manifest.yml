@@ -1,7 +1,6 @@
 name: Manifest
 
-permissions:
-  contents: read
+permissions: {}
 
 on:
   pull_request:
@@ -14,37 +13,21 @@ on:
     - cron: '0 0,3,6,9,12,15,18,21 * * *'
   workflow_dispatch:
 
-env:
-  CARGO_INCREMENTAL: 0
-  CARGO_NET_GIT_FETCH_WITH_CLI: true
-  CARGO_NET_RETRY: 10
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  RUSTFLAGS: -D warnings
-  RUSTUP_MAX_RETRIES: 10
-
-defaults:
-  run:
-    shell: bash --noprofile --norc -CeEuxo pipefail {0}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
   manifest:
-    uses: taiki-e/github-actions/.github/workflows/gen.yml@main
+    uses: taiki-e/github-actions/.github/workflows/gen.yml@e6a1170cbd07eb898017958967912976fce18f2d # 2026.7.3
     permissions:
-      contents: read
-      pull-requests: write # for gh pr edit --add-assignee / gh pr review --approve
-      repository-projects: read # for gh pr edit --add-assignee
-    secrets: inherit
+      contents: write # for creating branch for pr
+    secrets:
+      PR_TOKEN_APP_PRIVATE_KEY: ${{ secrets.PR_TOKEN_APP_PRIVATE_KEY }}
     with:
       script: tools/manifest.sh
       commit-script: tools/ci/manifest.sh
       title: Update manifest
       branch: update-manifest
-      automerge: true
-      install-rust: true
-      rust: stable
-      rust-cache: true
+      install-cosign: true
+      install-parse-changelog: true

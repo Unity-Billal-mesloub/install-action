@@ -19,12 +19,12 @@ Structured access to the install-action manifests.
     missing_debug_implementations,
     // missing_docs,
     clippy::alloc_instead_of_core,
-    // clippy::exhaustive_enums,
-    // clippy::exhaustive_structs,
+    clippy::exhaustive_enums,
+    clippy::exhaustive_structs,
     clippy::impl_trait_in_params,
-    // clippy::missing_inline_in_public_items,
     clippy::std_instead_of_alloc,
     clippy::std_instead_of_core,
+    // clippy::missing_inline_in_public_items,
 )]
 #![allow(clippy::missing_panics_doc, clippy::too_long_first_doc_paragraph)]
 
@@ -41,7 +41,6 @@ use core::{
     fmt, slice,
     str::FromStr,
 };
-use std::path::Path;
 
 use serde::{
     de::{self, Deserialize, Deserializer},
@@ -59,6 +58,7 @@ pub fn get_manifest_schema_branch_name() -> &'static str {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Version {
     pub major: Option<u64>,
     pub minor: Option<u64>,
@@ -196,23 +196,24 @@ impl<'de> Deserialize<'de> for Version {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Manifests {
     pub rust_crate: Option<String>,
     pub template: Option<ManifestTemplate>,
-    /// Markdown for the licenses.
-    pub license_markdown: String,
     #[serde(flatten)]
     pub map: BTreeMap<Reverse<Version>, ManifestRef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::exhaustive_enums)]
 pub enum ManifestRef {
     Ref { version: Version },
     Real(Manifest),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Manifest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub previous_stable_version: Option<Version>,
@@ -220,24 +221,46 @@ pub struct Manifest {
     pub download_info: BTreeMap<HostPlatform, ManifestDownloadInfo>,
 }
 
+impl Manifest {
+    #[must_use]
+    pub fn new(download_info: BTreeMap<HostPlatform, ManifestDownloadInfo>) -> Self {
+        Self { previous_stable_version: None, download_info }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct ManifestDownloadInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     pub etag: String,
-    pub checksum: String,
+    pub hash: String,
     /// Path to binaries in archive. Default to `${tool}${exe}`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bin: Option<StringOrArray>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl ManifestDownloadInfo {
+    #[must_use]
+    pub fn new(
+        url: Option<String>,
+        etag: String,
+        hash: String,
+        bin: Option<StringOrArray>,
+    ) -> Self {
+        Self { url, etag, hash, bin }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct ManifestTemplate {
     #[serde(flatten)]
     pub download_info: BTreeMap<HostPlatform, ManifestTemplateDownloadInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct ManifestTemplateDownloadInfo {
     pub url: String,
     /// Path to binaries in archive. Default to `${tool}${exe}`.
@@ -245,85 +268,16 @@ pub struct ManifestTemplateDownloadInfo {
     pub bin: Option<StringOrArray>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BaseManifest {
-    /// Link to the GitHub repository.
-    pub repository: String,
-    /// Alternative link for the project.  Automatically detected if possible.
-    pub website: Option<String>,
-    /// Markdown syntax for links to licenses.  Automatically detected if possible.
-    pub license_markdown: Option<String>,
-    /// Prefix of release tag.
-    pub tag_prefix: String,
-    /// Crate name, if this is Rust crate.
-    pub rust_crate: Option<String>,
-    pub default_major_version: Option<String>,
-    /// Asset name patterns.
-    pub asset_name: Option<StringOrArray>,
-    /// Path to binaries in archive. Default to `${tool}${exe}`.
-    pub bin: Option<StringOrArray>,
-    pub signing: Option<Signing>,
-    #[serde(default)]
-    pub broken: Vec<semver::Version>,
-    pub version_range: Option<String>,
-    /// Use glibc build if host_env is gnu.
-    #[serde(default)]
-    pub prefer_linux_gnu: bool,
-    /// Check that the version is yanked not only when updating the manifest,
-    /// but also when running the action.
-    #[serde(default)]
-    pub immediate_yank_reflection: bool,
-    pub platform: BTreeMap<HostPlatform, BaseManifestPlatformInfo>,
-}
-impl BaseManifest {
-    /// Validate the manifest.
-    pub fn validate(&self) {
-        for bin in self.bin.iter().chain(self.platform.values().flat_map(|m| &m.bin)) {
-            assert!(!bin.as_slice().is_empty());
-            for bin in bin.as_slice() {
-                let file_name = Path::new(bin).file_name().unwrap().to_str().unwrap();
-                if !self.repository.ends_with("/xbuild") {
-                    assert!(
-                        !(file_name.contains("${version") || file_name.contains("${rust")),
-                        "{bin}"
-                    );
-                }
-            }
-        }
-        if self.platform.is_empty() {
-            panic!("At least one platform must be specified");
-        }
+impl ManifestTemplateDownloadInfo {
+    #[must_use]
+    pub fn new(url: String, bin: Option<StringOrArray>) -> Self {
+        Self { url, bin }
     }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Signing {
-    pub kind: SigningKind,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-#[serde(deny_unknown_fields)]
-pub enum SigningKind {
-    /// algorithm: minisign
-    /// public key: package.metadata.binstall.signing.pubkey at Cargo.toml
-    /// <https://github.com/cargo-bins/cargo-binstall/blob/HEAD/SIGNING.md>
-    MinisignBinstall,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BaseManifestPlatformInfo {
-    /// Asset name patterns. Default to the value at `BaseManifest::asset_name`.
-    pub asset_name: Option<StringOrArray>,
-    /// Path to binaries in archive. Default to the value at `BaseManifest::bin`.
-    pub bin: Option<StringOrArray>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[allow(clippy::exhaustive_enums)]
 pub enum StringOrArray {
     String(String),
     Array(Vec<String>),
@@ -346,9 +300,8 @@ impl StringOrArray {
     }
 }
 
-/// GitHub Actions Runner supports x86_64/AArch64/Arm Linux, x86_64/AArch64 Windows,
-/// and x86_64/AArch64 macOS.
-/// <https://github.com/actions/runner/blob/v2.321.0/.github/workflows/build.yml#L21>
+/// GitHub Actions runner supports x86_64/AArch64/Arm Linux and x86_64/AArch64 Windows/macOS.
+/// <https://github.com/actions/runner/blob/v2.332.0/.github/workflows/build.yml#L24>
 /// <https://docs.github.com/en/actions/reference/runners/self-hosted-runners#supported-processor-architectures>
 /// And IBM provides runners for powerpc64le/s390x Linux.
 /// <https://github.com/IBM/actionspz>
@@ -359,15 +312,18 @@ impl StringOrArray {
 ///   (rustc enables statically linking for linux-musl by default, except for mips.)
 /// - Binaries compiled for x86_64 macOS will usually also work on AArch64 macOS.
 /// - Binaries compiled for x86_64 Windows will usually also work on AArch64 Windows 11+.
-/// - Ignore Arm for now, as we need to consider the version and whether hard-float is supported.
+/// - Ignore 32-bit Arm for now, as we need to consider the version and whether hard-float is supported.
 ///   <https://github.com/rust-lang/rustup/pull/593>
 ///   <https://github.com/cross-rs/cross/pull/1018>
+///   And support for 32-bit Arm will be removed in near future.
+///   <https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/#removal-of-operating-system-support-with-node24>
 ///   Does it seem only armv7l+ is supported?
 ///   <https://github.com/actions/runner/blob/v2.321.0/src/Misc/externals.sh#L178>
 ///   <https://github.com/actions/runner/issues/688>
-// TODO: support musl with dynamic linking like wasmtime 22.0.0+'s musl binaries: <https://github.com/bytecodealliance/wasmtime/releases/tag/v22.0.0>
+// TODO: support musl with dynamic linking like wasmtime and cyclonedx's musl binaries.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum HostPlatform {
     x86_64_linux_gnu,
     x86_64_linux_musl,

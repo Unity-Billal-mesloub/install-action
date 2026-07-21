@@ -21,9 +21,7 @@ See JSON files in `tools/codegen/base` directory for examples of the manifest.
 > GITHUB_TOKEN=$(gh auth token) ./tools/manifest.sh <tool>
 > ```
 
-## Refresh TOOLS.md
-
-To update `TOOLS.md`, run
+3\. Update `TOOLS.md` with the following command.
 
 ```sh
 ./tools/update-markdown.sh
@@ -38,3 +36,33 @@ to the platform object.
 
 If CI fails only for containers using older versions of glibc or musl, you may need to add the tool
 name to one of the `*_incompat` arrays in `tools/ci/tool-list.sh`.
+
+If the `Manifest / manifest / gen` job in CI fails due to outdated manifests for other tools,
+please ignore it and do not modify the manifest for any tools other than the one you are currently
+working on. That should be handled by the automation, and if everything else passes, your PR is okay.
+
+## Release new version
+
+Releases are performed by running the [release workflow](https://github.com/taiki-e/install-action/actions/workflows/release.yml) via workflow dispatch. The owner and collaborators can start the release workflow, but the owner's [approval](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#required-reviewers) is required before the actual release.
+
+### Minor version vs patch version
+
+Increase the patch version if only the following changes are included.
+
+- Update the `@latest` version of the tool.
+
+  Rationale: Normally, tool versions are controlled by the `@<version>` syntax, which is explicitly separated from the versioning of the install-action itself.
+
+  Exception: If the major or minor version of the `cargo-binstall` is updated, the minor version may be increased because the behavior of the fallback may change slightly.
+
+- Fix regressions or minor bugs.
+
+  Rationale: Semantic Versioning.
+
+- Improve documentation or diagnostics.
+
+  Rationale: Semantic Versioning.
+
+Usually increase the minor version otherwise.
+
+Adding support for a new tool may conflict with existing fallbacks, so it is necessary to increase the minor version.

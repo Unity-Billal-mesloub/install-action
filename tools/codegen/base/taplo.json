@@ -1,5 +1,6 @@
 {
   "repository": "https://github.com/tamasfe/taplo",
+  "license_markdown": "[MIT](https://github.com/tamasfe/taplo/blob/master/LICENSE)",
   "tag_prefix": "",
   "rust_crate": "${package}-cli",
   "asset_name": "${package}-${rust_target_os}-${rust_target_arch}.gz",
@@ -16,6 +17,9 @@
     "aarch64_linux_gnu": {},
     "aarch64_macos": {
       "asset_name": "${package}-darwin-${rust_target_arch}.gz"
+    },
+    "aarch64_windows": {
+      "asset_name": "${package}-${rust_target_os}-${rust_target_arch}.zip"
     },
     "riscv64_linux_gnu": {}
   }
