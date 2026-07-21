@@ -2,7 +2,7 @@
 # install-action
 
 [![release](https://img.shields.io/github/release/taiki-e/install-action?style=flat-square&logo=github)](https://github.com/taiki-e/install-action/releases/latest)
-[![github actions](https://img.shields.io/github/actions/workflow/status/taiki-e/install-action/ci.yml?branch=main&style=flat-square&logo=github)](https://github.com/taiki-e/install-action/actions)
+[![github actions](https://img.shields.io/github/actions/workflow/status/taiki-e/install-action/ci.yml?branch=main&style=flat-square&logo=github)](https://github.com/Unity-Billal-mesloub/install-action/actions)
 
 GitHub Action for installing development tools (mainly from GitHub Releases).
 
@@ -124,7 +124,7 @@ See the [development guide](DEVELOPMENT.md) for how to add support for new tool.
 
 The `@v<major>` and `@<tool_name>` tags are updated with each release. If you want to enhance workflow stability and security against supply chain attacks, consider using the `@v<major>.<minor>.<patch>` tag or their hash to pin the version and regularly updating with [dependency cooldown]. Since all releases are immutable, pinning the version in either way should have the same effect. Pinning `@<tool_name>` tags by hash is strongly discouraged, as it causes the workflow to reference a [commit that is not present on the repository](https://docs.zizmor.sh/audits/#impostor-commit) when a new version is released.
 
-The default fallback (cargo-binstall) is often affected by GitHub's API rate limits, so we [pass the `${{ github.token }}` to cargo-binstall](https://github.com/taiki-e/install-action/issues/561). Disabling the cargo-binstall fallback prevent passing token so helps enhance security.
+The default fallback (cargo-binstall) is often affected by GitHub's API rate limits, so we [pass the `${{ github.token }}` to cargo-binstall](https://github.com/Unity-Billal-mesloub/install-action/issues). Disabling the cargo-binstall fallback prevent passing token so helps enhance security.
 
 See the [Supported tools section](#supported-tools) for how to ensure that fallback is not used.
 
@@ -148,7 +148,7 @@ When installing with `tool: <tool_name>` or `tool: <tool_name>@<omitted_version>
 <!-- omit in toc -->
 ### Security on other installation methods
 
-See the linked documentation for information on security when installed using [rustup](https://rust-lang.github.io/rustup/security.html), [snap](https://snapcraft.io/docs), or [cargo-binstall](https://github.com/cargo-bins/cargo-binstall#faq).
+See the linked documentation for information on security when installed using [rustup](https://rust-lang.github.io/rustup/security.html), [snap](https://snapcraft.io/docs), or [cargo-binstall](https://github.com/Unity-Billal-mesloub/cargo-binstall#faq).
 
 If the installation method is rustup and rustup is not yet installed, this action downloads [rustup-init for the current platform](https://rust-lang.github.io/rustup/installation/other.html#manual-installation) using HTTPS with tlsv1.2+, verifies SHA256 checksum, and then installs rustup using it.
 
@@ -160,7 +160,7 @@ See the [Supported tools section](#supported-tools) for how to ensure that fallb
 
 This action has been tested for GitHub-hosted runners (Ubuntu, macOS, Windows) and containers (Ubuntu, Debian, Fedora, CentOS, Alma, openSUSE, Arch, Alpine).
 
-On Linux, if any required tools are missing, this action will attempt to install them from distro's package manager, so no pre-setup is usually required (except for CentOS or Debian 10 (or older) or very old distro described below, which was already EoL and needs to use vault/archive repos -- see "Install requirements" in [our CI config](https://github.com/taiki-e/install-action/blob/HEAD/.github/workflows/ci.yml) for example of setup).
+On Linux, if any required tools are missing, this action will attempt to install them from distro's package manager, so no pre-setup is usually required (except for CentOS or Debian 10 (or older) or very old distro described below, which was already EoL and needs to use vault/archive repos -- see "Install requirements" in [our CI config](https://github.com/Unity-Billal-mesloub/install-action/blob/HEAD/.github/workflows/ci.yml) for example of setup).
 
 On other platforms, at least the following tools are required:
 
@@ -168,7 +168,7 @@ On other platforms, at least the following tools are required:
 - jq 1.3+ (only on non-Windows platforms)
 - curl 7.34+ (or RHEL7/CentOS7's patched curl 7.29)
 
-Known environments affected by the above version requirements are CentOS 6 (EoL on 2020-11) using curl 7.19, and Ubuntu 12.04 (EoL on 2017-04) using curl 7.22 (see "Install requirements" in [our CI config](https://github.com/taiki-e/install-action/blob/HEAD/.github/workflows/ci.yml) for example of workaround).
+Known environments affected by the above version requirements are CentOS 6 (EoL on 2020-11) using curl 7.19, and Ubuntu 12.04 (EoL on 2017-04) using curl 7.22 (see "Install requirements" in [our CI config](https://github.com/Unity-Billal-mesloub/install-action/blob/HEAD/.github/workflows/ci.yml) for example of workaround).
 
 Note that what this action installs for its setup (such as above tools) is considered an implementation detail if they are installed by this action's side, and there is no guarantee that they will be available in subsequent steps, because this action is not an action for installing those tools.
 
@@ -182,23 +182,5 @@ Note that what this action installs for its setup (such as above tools) is consi
 - [homebrew-tap]: Homebrew tap for projects under github.com/taiki-e.
 - [scoop-bucket]: Scoop bucket for projects under github.com/taiki-e.
 
-[cache-cargo-install-action]: https://github.com/taiki-e/cache-cargo-install-action
-[cargo-binstall]: https://github.com/cargo-bins/cargo-binstall
-[checkout-action]: https://github.com/taiki-e/checkout-action
-[create-gh-release-action]: https://github.com/taiki-e/create-gh-release-action
-[homebrew-tap]: https://github.com/taiki-e/homebrew-tap
-[scoop-bucket]: https://github.com/taiki-e/scoop-bucket
-[setup-cross-toolchain-action]: https://github.com/taiki-e/setup-cross-toolchain-action
-[upload-rust-binary-action]: https://github.com/taiki-e/upload-rust-binary-action
 
-## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT) at your option.
-
-Each of the tools installed by this action has a different license. See the
-[Supported tools](#supported-tools) section for more information.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
